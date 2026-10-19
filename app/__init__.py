@@ -12,10 +12,24 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
 
     # Configure logging
-    logging.basicConfig(
-        level=logging.INFO,
-        format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
-    )
+    log_format = '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+    logging.basicConfig(level=logging.INFO, format=log_format)
+
+    # File handler for centralized logging (Promtail)
+    log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs')
+    try:
+        os.makedirs(log_dir, exist_ok=True)
+        from logging.handlers import RotatingFileHandler
+        file_handler = RotatingFileHandler(
+            os.path.join(log_dir, 'library.log'),
+            maxBytes=10 * 1024 * 1024,
+            backupCount=5
+        )
+        file_handler.setFormatter(logging.Formatter(log_format))
+        file_handler.setLevel(logging.INFO)
+        app.logger.addHandler(file_handler)
+    except Exception as log_ex:
+        app.logger.warning(f"Could not initialize file log handler: {log_ex}")
 
     # Base configuration
     secret_key = os.getenv('SECRET_KEY', 'dev-insecure-secret-key-replace-in-env')

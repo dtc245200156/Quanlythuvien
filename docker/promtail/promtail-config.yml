@@ -1,0 +1,47 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+  log_level: info
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # 1. Scrape Nginx Access & Error Logs
+  - job_name: nginx
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx
+          service: reverse-proxy
+          environment: production
+          __path__: /var/log/nginx/*.log
+    pipeline_stages:
+      - match:
+          selector: '{job="nginx"}'
+          stages:
+            - regex:
+                expression: '^(?P<remote_addr>[\w\.]+) - (?P<remote_user>[^ ]*) \[(?P<time_local>[^\]]+)\] "(?P<request>[^"]*)" (?P<status>\d{3}) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)" rt=(?P<request_time>[\d\.]*)'
+
+  # 2. Scrape Flask Application Logs
+  - job_name: library-app
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: library-app
+          service: library-web
+          environment: production
+          __path__: /app/logs/*.log
+    pipeline_stages:
+      - match:
+          selector: '{job="library-app"}'
+          stages:
+            - regex:
+                expression: '^\[(?P<timestamp>[^\]]+)\] (?P<level>\w+) in (?P<module>[^:]+): (?P<message>.*)$'
+            - labels:
+                level:

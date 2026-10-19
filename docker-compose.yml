@@ -76,12 +76,15 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB:-library_db}
       DATABASE_URL: postgresql://${POSTGRES_USER:-library_user}:${POSTGRES_PASSWORD:-LibrarySecret2025!}@db:5432/${POSTGRES_DB:-library_db}
+    volumes:
+      - app_logs:/app/logs
     expose:
       - "5000"
     networks:
       - frontend
       - backend
       - monitoring
+      - logging
     depends_on:
       db:
         condition: service_healthy
@@ -115,6 +118,7 @@ services:
       - nginx_logs:/var/log/nginx
     networks:
       - frontend
+      - logging
     depends_on:
       - web
     security_opt:
@@ -155,7 +159,7 @@ services:
           memory: 512M
 
   # ----------------------------------------------------------------------------
-  # 6. Grafana Visualization Dashboards
+  # 6. Grafana Visualization Dashboards & Log Explorer
   # ----------------------------------------------------------------------------
   grafana:
     image: grafana/grafana:10.3.3
@@ -175,8 +179,10 @@ services:
       - "${GRAFANA_PORT:-3000}:3000"
     networks:
       - monitoring
+      - logging
     depends_on:
       - prometheus
+      - loki
     security_opt:
       - no-new-privileges:true
     deploy:
@@ -254,12 +260,62 @@ services:
           cpus: '0.2'
           memory: 128M
 
+  # ----------------------------------------------------------------------------
+  # 10. Loki Log Aggregator
+  # ----------------------------------------------------------------------------
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: library_loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./docker/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    ports:
+      - "127.0.0.1:${LOKI_PORT:-3100}:3100"
+    networks:
+      - logging
+      - monitoring
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ----------------------------------------------------------------------------
+  # 11. Promtail Log Shipper
+  # ----------------------------------------------------------------------------
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: library_promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./docker/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - nginx_logs:/var/log/nginx:ro
+      - app_logs:/app/logs:ro
+    networks:
+      - logging
+    depends_on:
+      - loki
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 256M
+
 networks:
   frontend:
     driver: bridge
   backend:
     driver: bridge
   monitoring:
+    driver: bridge
+  logging:
     driver: bridge
 
 volumes:
@@ -269,7 +325,11 @@ volumes:
     driver: local
   nginx_logs:
     driver: local
+  app_logs:
+    driver: local
   prom_data:
     driver: local
   grafana_data:
+    driver: local
+  loki_data:
     driver: local
