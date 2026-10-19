@@ -1,0 +1,51 @@
+# ==============================================================================
+# Prometheus Scrape Configuration
+# ==============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  # 1. Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 2. Flask Library Management Web Application
+  - job_name: 'library-app'
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['web:5000']
+        labels:
+          service: 'library-web'
+          environment: 'production'
+
+  # 3. PostgreSQL Database Exporter
+  - job_name: 'postgres-exporter'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'postgres-db'
+          environment: 'production'
+
+  # 4. cAdvisor (Container Resource Metrics)
+  - job_name: 'cadvisor'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: 'container-metrics'
+          environment: 'production'
+
+  # 5. Node Exporter (Host Metrics)
+  - job_name: 'node-exporter'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'host-metrics'
+          environment: 'production'
