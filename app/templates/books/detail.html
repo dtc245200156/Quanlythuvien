@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Chi Tiết Sách: {{ book.title }}{% endblock %}
+
+{% block header %}
+<div class="mb-4">
+    <a href="{{ url_for('books.index') }}" class="btn btn-sm btn-outline-secondary mb-2">
+        <i class="bi bi-arrow-left"></i> Quay lại danh sách
+    </a>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="bi bi-journal-text text-primary me-2"></i>{{ book.title }}</h2>
+            <p class="text-muted mb-0">ISBN: <code class="text-primary">{{ book.isbn }}</code> | Tác giả: {{ book.author }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('books.edit', book_id=book.id) }}" class="btn btn-outline-primary">
+                <i class="bi bi-pencil-square"></i> Sửa thông tin
+            </a>
+            <form method="POST" action="{{ url_for('books.delete', book_id=book.id) }}" class="confirm-action" data-confirm="Bạn có chắc chắn muốn xóa cuốn sách này khỏi thư viện?">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="bi bi-trash"></i> Xóa sách
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Book Info Card -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <i class="bi bi-info-circle text-primary me-2"></i>Thông Tin Chi Tiết
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted" style="width: 140px;">Mã ISBN:</td>
+                            <td class="fw-semibold"><code>{{ book.isbn }}</code></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Thể loại:</td>
+                            <td><span class="badge bg-secondary-subtle text-secondary">{{ book.category }}</span></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Tác giả:</td>
+                            <td class="fw-semibold">{{ book.author }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Nhà xuất bản:</td>
+                            <td>{{ book.publisher or 'Chưa cập nhật' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Năm xuất bản:</td>
+                            <td>{{ book.publish_year or 'Chưa cập nhật' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Tổng số lượng:</td>
+                            <td class="fw-semibold">{{ book.total_quantity }} cuốn</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Số lượng còn lại:</td>
+                            <td>
+                                {% if book.available_quantity > 0 %}
+                                    <span class="badge bg-success-subtle text-success px-2 py-1 fs-6">
+                                        {{ book.available_quantity }} cuốn sẵn sàng
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger px-2 py-1 fs-6">
+                                        Hết sách trong kho
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Đang mượn:</td>
+                            <td class="fw-semibold text-warning">{{ book.total_quantity - book.available_quantity }} cuốn</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Ngày nhập kho:</td>
+                            <td>{{ book.created_at.strftime('%d/%m/%Y %H:%M') if book.created_at else '-' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan History for this book -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <i class="bi bi-clock-history text-primary me-2"></i>Lịch Sử Mượn Trả Đầu Sách Này
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Mã Phiếu</th>
+                                <th>Độc Giả</th>
+                                <th>Số Lượng</th>
+                                <th>Ngày Mượn</th>
+                                <th>Trạng Thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set details = book.loan_details.all() %}
+                            {% if details %}
+                                {% for item in details %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ url_for('loans.detail', loan_id=item.loan_id) }}" class="fw-semibold text-decoration-none">
+                                                {{ item.loan.loan_code }}
+                                            </a>
+                                        </td>
+                                        <td>{{ item.loan.reader.full_name }}</td>
+                                        <td>{{ item.quantity }} cuốn</td>
+                                        <td>{{ item.loan.borrow_date.strftime('%d/%m/%Y') }}</td>
+                                        <td>
+                                            {% if item.returned %}
+                                                <span class="badge bg-success-subtle text-success">Đã trả ({{ item.return_date.strftime('%d/%m/%Y') if item.return_date else '' }})</span>
+                                            {% else %}
+                                                <span class="badge bg-warning-subtle text-warning">Đang mượn</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        Chưa có lượt mượn nào đối với đầu sách này.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

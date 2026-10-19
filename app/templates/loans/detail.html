@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}Chi Tiết Phiếu Mượn: {{ loan.loan_code }}{% endblock %}
+
+{% block header %}
+<div class="mb-4">
+    <a href="{{ url_for('loans.index') }}" class="btn btn-sm btn-outline-secondary mb-2">
+        <i class="bi bi-arrow-left"></i> Quay lại danh sách phiếu
+    </a>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="bi bi-receipt text-primary me-2"></i>Phiếu Mượn: {{ loan.loan_code }}
+            </h2>
+            <p class="text-muted mb-0">Độc giả: <strong>{{ loan.reader.full_name }}</strong> ({{ loan.reader.reader_code }})</p>
+        </div>
+        <div>
+            {% if loan.status != 'returned' %}
+                <form method="POST" action="{{ url_for('loans.return_all', loan_id=loan.id) }}" class="confirm-action" data-confirm="Bạn có chắc chắn muốn xác nhận trả toàn bộ sách trong phiếu này?">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-success shadow-sm">
+                        <i class="bi bi-check2-all me-1"></i> Trả Toàn Bộ Sách
+                    </button>
+                </form>
+            {% else %}
+                <span class="badge bg-success fs-6 px-3 py-2">
+                    <i class="bi bi-check-circle-fill me-1"></i> Đã hoàn tất trả toàn bộ
+                </span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Loan Summary Card -->
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <i class="bi bi-info-circle text-primary me-2"></i>Thông Tin Phiếu
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless small mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted" style="width: 120px;">Trạng thái:</td>
+                            <td>
+                                {% if loan.status == 'returned' %}
+                                    <span class="badge bg-success-subtle text-success badge-status">Đã trả hết</span>
+                                {% elif loan.status == 'overdue' or loan.is_overdue %}
+                                    <span class="badge bg-danger-subtle text-danger badge-status">Quá hạn</span>
+                                {% else %}
+                                    <span class="badge bg-warning-subtle text-warning badge-status">Đang mượn</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Ngày mượn:</td>
+                            <td class="fw-semibold">{{ loan.borrow_date.strftime('%d/%m/%Y') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Hạn trả:</td>
+                            <td class="fw-semibold {{ 'text-danger' if loan.is_overdue }}">{{ loan.due_date.strftime('%d/%m/%Y') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Ghi chú:</td>
+                            <td>{{ loan.notes or 'Không có ghi chú' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Thời điểm lập:</td>
+                            <td>{{ loan.created_at.strftime('%d/%m/%Y %H:%M') if loan.created_at else '-' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reader Card -->
+    <div class="col-md-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-person text-primary me-2"></i>Thông Tin Độc Giả</span>
+                <a href="{{ url_for('readers.detail', reader_id=loan.reader_id) }}" class="btn btn-sm btn-link text-decoration-none">Xem hồ sơ độc giả</a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-sm-6 mb-2">
+                        <span class="text-muted small d-block">Họ và tên:</span>
+                        <strong class="fs-6">{{ loan.reader.full_name }}</strong>
+                    </div>
+                    <div class="col-sm-6 mb-2">
+                        <span class="text-muted small d-block">Mã độc giả:</span>
+                        <code>{{ loan.reader.reader_code }}</code>
+                    </div>
+                    <div class="col-sm-6 mb-2">
+                        <span class="text-muted small d-block">Email:</span>
+                        <span>{{ loan.reader.email }}</span>
+                    </div>
+                    <div class="col-sm-6 mb-2">
+                        <span class="text-muted small d-block">Điện thoại:</span>
+                        <span>{{ loan.reader.phone or 'Chưa cập nhật' }}</span>
+                    </div>
+                    <div class="col-12">
+                        <span class="text-muted small d-block">Địa chỉ / Đơn vị:</span>
+                        <span>{{ loan.reader.address or 'Chưa cập nhật' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Books in Loan Table -->
+<div class="card shadow-sm">
+    <div class="card-header">
+        <i class="bi bi-journal-check text-primary me-2"></i>Danh Sách Tài Liệu Mượn ({{ loan.details|length }} đầu sách)
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Tên Sách & Tác Giả</th>
+                        <th>Mã ISBN</th>
+                        <th class="text-center">Số Lượng</th>
+                        <th class="text-center">Trạng Thái Trả</th>
+                        <th>Ngày Trả Thực Tế</th>
+                        <th class="text-end">Xử Lý Trả Sách</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in loan.details %}
+                        <tr>
+                            <td class="text-muted">{{ loop.index }}</td>
+                            <td>
+                                <a href="{{ url_for('books.detail', book_id=item.book_id) }}" class="fw-semibold text-decoration-none text-dark">
+                                    {{ item.book.title }}
+                                </a>
+                                <div class="small text-muted">{{ item.book.author }}</div>
+                            </td>
+                            <td><code>{{ item.book.isbn }}</code></td>
+                            <td class="text-center fw-semibold">{{ item.quantity }} cuốn</td>
+                            <td class="text-center">
+                                {% if item.returned %}
+                                    <span class="badge bg-success-subtle text-success badge-status">Đã trả</span>
+                                {% else %}
+                                    {% if loan.is_overdue %}
+                                        <span class="badge bg-danger-subtle text-danger badge-status">Chưa trả (Quá hạn)</span>
+                                    {% else %}
+                                        <span class="badge bg-warning-subtle text-warning badge-status">Đang giữ sách</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.returned and item.return_date %}
+                                    <span class="text-success"><i class="bi bi-calendar-check me-1"></i>{{ item.return_date.strftime('%d/%m/%Y') }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if not item.returned %}
+                                    <form method="POST" action="{{ url_for('loans.return_item', detail_id=item.id) }}" class="d-inline confirm-action" data-confirm="Xác nhận độc giả đã trả cuốn sách '{{ item.book.title }}'?">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                            <i class="bi bi-box-arrow-in-down me-1"></i> Trả sách này
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <button class="btn btn-sm btn-light text-muted" disabled>
+                                        <i class="bi bi-check2"></i> Đã hoàn tất
+                                    </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

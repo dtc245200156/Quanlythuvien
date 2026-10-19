@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+
+{% block title %}Bảng Điều Khiển Tổng Quan{% endblock %}
+
+{% block header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-speedometer2 text-primary me-2"></i>Bảng Điều Khiển Trung Tâm</h2>
+        <p class="text-muted mb-0">Hệ thống thông tin quản lý thư viện và giám sát vận hành</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('loans.create') }}" class="btn btn-primary d-flex align-items-center gap-1 shadow-sm">
+            <i class="bi bi-plus-circle"></i> Tạo Phiếu Mượn
+        </a>
+        <a href="{{ url_for('books.create') }}" class="btn btn-outline-primary d-flex align-items-center gap-1">
+            <i class="bi bi-book"></i> Thêm Sách
+        </a>
+        <a href="{{ url_for('readers.create') }}" class="btn btn-outline-secondary d-flex align-items-center gap-1">
+            <i class="bi bi-person-plus"></i> Thêm Độc Giả
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Statistics Row -->
+<div class="row g-3 mb-4">
+    <!-- Total Books -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card bg-white p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Tổng số sách</span>
+                    <h3 class="fw-bold my-1 text-primary">{{ stats.total_books_sum }}</h3>
+                    <small class="text-muted">{{ stats.total_titles }} tựa sách ({{ stats.total_available }} còn lại)</small>
+                </div>
+                <div class="stat-icon bg-primary-subtle text-primary">
+                    <i class="bi bi-bookshelf"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Readers -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card bg-white p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Tổng độc giả</span>
+                    <h3 class="fw-bold my-1 text-success">{{ stats.total_readers }}</h3>
+                    <small class="text-success"><i class="bi bi-check-circle me-1"></i>{{ stats.active_readers }} đang hoạt động</small>
+                </div>
+                <div class="stat-icon bg-success-subtle text-success">
+                    <i class="bi bi-people"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Loans -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card bg-white p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Đang mượn</span>
+                    <h3 class="fw-bold my-1 text-warning">{{ stats.active_loans }}</h3>
+                    <small class="text-muted">{{ stats.returned_count }} phiếu đã trả xong</small>
+                </div>
+                <div class="stat-icon bg-warning-subtle text-warning">
+                    <i class="bi bi-arrow-repeat"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overdue Loans -->
+    <div class="col-sm-6 col-lg-3">
+        <div class="card stat-card bg-white p-3">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Quá hạn</span>
+                    <h3 class="fw-bold my-1 text-danger">{{ stats.overdue_count }}</h3>
+                    <small class="text-danger fw-semibold">Cần đôn đốc thu hồi</small>
+                </div>
+                <div class="stat-icon bg-danger-subtle text-danger">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Grid -->
+<div class="row g-4">
+    <!-- Recent Loans Table -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-list-check text-primary"></i> Lịch Sử Mượn Trả Gần Đây
+                </span>
+                <a href="{{ url_for('loans.index') }}" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Mã Phiếu</th>
+                                <th>Độc Giả</th>
+                                <th>Ngày Mượn</th>
+                                <th>Hạn Trả</th>
+                                <th>Trạng Thái</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if stats.recent_loans %}
+                                {% for loan in stats.recent_loans %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ url_for('loans.detail', loan_id=loan.id) }}" class="fw-semibold text-decoration-none">
+                                                {{ loan.loan_code }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <div>{{ loan.reader.full_name }}</div>
+                                            <small class="text-muted">{{ loan.reader.reader_code }}</small>
+                                        </td>
+                                        <td>{{ loan.borrow_date.strftime('%d/%m/%Y') }}</td>
+                                        <td>{{ loan.due_date.strftime('%d/%m/%Y') }}</td>
+                                        <td>
+                                            {% if loan.status == 'returned' %}
+                                                <span class="badge bg-success-subtle text-success badge-status">Đã trả</span>
+                                            {% elif loan.status == 'overdue' or loan.is_overdue %}
+                                                <span class="badge bg-danger-subtle text-danger badge-status">Quá hạn</span>
+                                            {% else %}
+                                                <span class="badge bg-warning-subtle text-warning badge-status">Đang mượn</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <a href="{{ url_for('loans.detail', loan_id=loan.id) }}" class="btn btn-sm btn-light">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">
+                                        <i class="bi bi-inbox fs-3 d-block mb-1"></i> Chưa có phiếu mượn nào được ghi nhận.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Books & System Status -->
+    <div class="col-lg-4">
+        <!-- Recently Added Books -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-journal-plus text-success"></i> Sách Mới Cập Nhật
+                </span>
+                <a href="{{ url_for('books.index') }}" class="btn btn-sm btn-outline-secondary">Tất cả</a>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% if stats.recent_books %}
+                        {% for book in stats.recent_books %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                <div class="me-2">
+                                    <h6 class="mb-0 text-truncate" style="max-width: 200px;">
+                                        <a href="{{ url_for('books.detail', book_id=book.id) }}" class="text-decoration-none text-dark">
+                                            {{ book.title }}
+                                        </a>
+                                    </h6>
+                                    <small class="text-muted">{{ book.author }} ({{ book.category }})</small>
+                                </div>
+                                <span class="badge bg-primary-subtle text-primary rounded-pill">
+                                    {{ book.available_quantity }}/{{ book.total_quantity }} cuốn
+                                </span>
+                            </li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="list-group-item text-center text-muted py-3">Chưa có sách nào trong kho.</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Infrastructure Status Card -->
+        <div class="card shadow-sm bg-light-subtle">
+            <div class="card-body">
+                <h6 class="fw-bold text-dark mb-3">
+                    <i class="bi bi-hdd-network text-info me-2"></i>Trạng Thái Cụm Triển Khai
+                </h6>
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <span class="small"><i class="bi bi-shield-lock-fill text-success me-1"></i> Nginx Reverse Proxy</span>
+                    <span class="badge bg-success">TLS 1.2/1.3 :443</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <span class="small"><i class="bi bi-database text-primary me-1"></i> PostgreSQL Database</span>
+                    <span class="badge bg-primary">Connected</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <span class="small"><i class="bi bi-activity text-danger me-1"></i> Prometheus Metrics</span>
+                    <span class="badge bg-danger">Scraping /metrics</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="small"><i class="bi bi-file-earmark-text text-dark me-1"></i> Centralized Logging</span>
+                    <span class="badge bg-dark">Loki + Promtail</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

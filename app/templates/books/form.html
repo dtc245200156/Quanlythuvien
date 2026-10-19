@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ 'Chỉnh Sửa Sách' if book else 'Thêm Sách Mới' }}{% endblock %}
+
+{% block header %}
+<div class="mb-4">
+    <a href="{{ url_for('books.index') }}" class="btn btn-sm btn-outline-secondary mb-2">
+        <i class="bi bi-arrow-left"></i> Quay lại danh sách
+    </a>
+    <h2 class="fw-bold mb-1">
+        <i class="bi bi-{{ 'pencil-square text-primary' if book else 'plus-circle text-success' }} me-2"></i>
+        {{ 'Chỉnh Sửa Thông Tin Sách' if book else 'Thêm Sách Mới Vào Thư Viện' }}
+    </h2>
+    <p class="text-muted mb-0">Điền đầy đủ thông tin sách để quản lý trong cơ sở dữ liệu PostgreSQL</p>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row g-3">
+                        <!-- ISBN -->
+                        <div class="col-md-6">
+                            <label for="isbn" class="form-label fw-semibold">Mã ISBN <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="isbn" name="isbn" value="{{ book.isbn if book else '' }}" required placeholder="VD: 978-604-0-12345-6">
+                            <div class="form-text">Mã định danh duy nhất của cuốn sách.</div>
+                        </div>
+
+                        <!-- Category -->
+                        <div class="col-md-6">
+                            <label for="category" class="form-label fw-semibold">Thể loại <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="category" name="category" list="categoryList" value="{{ book.category if book else 'Công nghệ thông tin' }}" required>
+                            <datalist id="categoryList">
+                                <option value="Công nghệ thông tin">
+                                <option value="Khoa học máy tính">
+                                <option value="Hệ điều hành & Mạng">
+                                <option value="Kinh tế & Quản trị">
+                                <option value="Văn học & Nghệ thuật">
+                                <option value="Kỹ năng sống">
+                            </datalist>
+                        </div>
+
+                        <!-- Title -->
+                        <div class="col-12">
+                            <label for="title" class="form-label fw-semibold">Tên sách <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="title" name="title" value="{{ book.title if book else '' }}" required placeholder="VD: Thiết kế hệ thống phân tán với Docker & Kubernetes">
+                        </div>
+
+                        <!-- Author -->
+                        <div class="col-md-6">
+                            <label for="author" class="form-label fw-semibold">Tác giả <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="author" name="author" value="{{ book.author if book else '' }}" required placeholder="VD: Nguyễn Văn A">
+                        </div>
+
+                        <!-- Publisher -->
+                        <div class="col-md-6">
+                            <label for="publisher" class="form-label fw-semibold">Nhà xuất bản</label>
+                            <input type="text" class="form-control" id="publisher" name="publisher" value="{{ book.publisher if book and book.publisher else '' }}" placeholder="VD: NXB Thông tin & Truyền thông">
+                        </div>
+
+                        <!-- Publish Year -->
+                        <div class="col-md-6">
+                            <label for="publish_year" class="form-label fw-semibold">Năm xuất bản</label>
+                            <input type="number" class="form-control" id="publish_year" name="publish_year" value="{{ book.publish_year if book and book.publish_year else 2024 }}" min="1900" max="2100">
+                        </div>
+
+                        <!-- Total Quantity -->
+                        <div class="col-md-6">
+                            <label for="total_quantity" class="form-label fw-semibold">Tổng số lượng bản in <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="total_quantity" name="total_quantity" value="{{ book.total_quantity if book else 5 }}" min="0" required>
+                            {% if book %}
+                                <div class="form-text text-info">
+                                    Hiện tại đang có {{ book.available_quantity }} cuốn còn lại trong kho.
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('books.index') }}" class="btn btn-outline-secondary">Hủy bỏ</a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-save me-1"></i> {{ 'Lưu Thay Đổi' if book else 'Tạo Mới Sách' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

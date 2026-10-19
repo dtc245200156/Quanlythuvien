@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}Lỗi Máy Chủ Nội Bộ (500){% endblock %}
+
+{% block content %}
+<div class="row justify-content-center text-center py-5">
+    <div class="col-md-6">
+        <div class="display-1 text-danger fw-bold mb-3">500</div>
+        <h3 class="fw-bold mb-2">Đã Xảy Ra Lỗi Máy Chủ</h3>
+        <p class="text-muted mb-4">Hệ thống đã ghi nhận lỗi vào log tập trung (Loki). Vì lý do bảo mật, chi tiết kỹ thuật không được hiển thị công khai.</p>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">
+            <i class="bi bi-house-door me-1"></i> Quay về Trang chủ
+        </a>
+    </div>
+</div>
+{% endblock %}

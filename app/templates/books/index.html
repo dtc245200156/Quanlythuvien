@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Quản Lý Danh Mục Sách{% endblock %}
+
+{% block header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-book text-primary me-2"></i>Quản Lý Danh Mục Sách</h2>
+        <p class="text-muted mb-0">Quản lý kho sách, thông tin tác giả, ISBN và số lượng tồn</p>
+    </div>
+    <a href="{{ url_for('books.create') }}" class="btn btn-primary d-flex align-items-center gap-1 shadow-sm">
+        <i class="bi bi-plus-lg"></i> Thêm Sách Mới
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Search & Filter Card -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('books.index') }}" class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <label for="q" class="form-label small fw-semibold text-muted">Tìm kiếm từ khóa</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="q" name="q" value="{{ search }}" placeholder="Nhập tên sách, tác giả hoặc ISBN...">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label for="category" class="form-label small fw-semibold text-muted">Thể loại</label>
+                <select class="form-select" id="category" name="category">
+                    <option value="">-- Tất cả thể loại --</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat }}" {{ 'selected' if category == cat }}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter"></i> Lọc</button>
+                {% if search or category %}
+                    <a href="{{ url_for('books.index') }}" class="btn btn-outline-secondary" title="Đặt lại bộ lọc"><i class="bi bi-arrow-clockwise"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Books Table -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>ISBN</th>
+                        <th>Tên Sách</th>
+                        <th>Tác Giả</th>
+                        <th>Thể Loại</th>
+                        <th>Năm XB</th>
+                        <th class="text-center">Số Lượng</th>
+                        <th class="text-center">Còn Lại</th>
+                        <th class="text-end">Hành Động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if books %}
+                        {% for book in books %}
+                            <tr>
+                                <td class="text-muted">{{ loop.index + (pagination.page - 1) * pagination.per_page }}</td>
+                                <td><code class="text-primary fw-semibold">{{ book.isbn }}</code></td>
+                                <td>
+                                    <a href="{{ url_for('books.detail', book_id=book.id) }}" class="fw-semibold text-decoration-none text-dark">
+                                        {{ book.title }}
+                                    </a>
+                                    {% if book.publisher %}
+                                        <div class="small text-muted">NXB: {{ book.publisher }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>{{ book.author }}</td>
+                                <td><span class="badge bg-secondary-subtle text-secondary">{{ book.category }}</span></td>
+                                <td>{{ book.publish_year or '-' }}</td>
+                                <td class="text-center fw-semibold">{{ book.total_quantity }}</td>
+                                <td class="text-center">
+                                    {% if book.available_quantity == 0 %}
+                                        <span class="badge bg-danger-subtle text-danger px-2 py-1">Hết sách</span>
+                                    {% else %}
+                                        <span class="badge bg-success-subtle text-success px-2 py-1">{{ book.available_quantity }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('books.detail', book_id=book.id) }}" class="btn btn-light" title="Chi tiết">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('books.edit', book_id=book.id) }}" class="btn btn-light" title="Chỉnh sửa">
+                                            <i class="bi bi-pencil-square text-primary"></i>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('books.delete', book_id=book.id) }}" class="d-inline confirm-action" data-confirm="Bạn có chắc chắn muốn xóa sách '{{ book.title }}'?">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-light text-danger" title="Xóa">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-journal-x fs-1 d-block mb-2"></i> Không tìm thấy sách nào phù hợp với yêu cầu tìm kiếm.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
+            <span class="small text-muted">
+                Hiển thị trang {{ pagination.page }} / {{ pagination.pages }} (Tổng {{ pagination.total }} sách)
+            </span>
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+                        <a class="page-link" href="{{ url_for('books.index', page=pagination.prev_num, q=search, category=category) }}">Trước</a>
+                    </li>
+                    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if p %}
+                            <li class="page-item {{ 'active' if p == pagination.page }}">
+                                <a class="page-link" href="{{ url_for('books.index', page=p, q=search, category=category) }}">{{ p }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+                        <a class="page-link" href="{{ url_for('books.index', page=pagination.next_num, q=search, category=category) }}">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

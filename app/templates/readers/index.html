@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Quản Lý Độc Giả{% endblock %}
+
+{% block header %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-people text-primary me-2"></i>Quản Lý Độc Giả</h2>
+        <p class="text-muted mb-0">Quản lý hồ sơ bạn đọc, thông tin liên lạc và trạng thái thẻ thư viện</p>
+    </div>
+    <a href="{{ url_for('readers.create') }}" class="btn btn-primary d-flex align-items-center gap-1 shadow-sm">
+        <i class="bi bi-person-plus"></i> Thêm Độc Giả Mới
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Search & Filter Card -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('readers.index') }}" class="row g-3 align-items-end">
+            <div class="col-md-7">
+                <label for="q" class="form-label small fw-semibold text-muted">Tìm kiếm độc giả</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="q" name="q" value="{{ search }}" placeholder="Nhập tên độc giả, mã thẻ, email hoặc số điện thoại...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label for="status" class="form-label small fw-semibold text-muted">Trạng thái thẻ</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">-- Tất cả trạng thái --</option>
+                    <option value="active" {{ 'selected' if status == 'active' }}>Đang hoạt động</option>
+                    <option value="inactive" {{ 'selected' if status == 'inactive' }}>Ngừng hoạt động</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter"></i> Lọc</button>
+                {% if search or status %}
+                    <a href="{{ url_for('readers.index') }}" class="btn btn-outline-secondary" title="Đặt lại bộ lọc"><i class="bi bi-arrow-clockwise"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Readers Table -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Mã Thẻ</th>
+                        <th>Họ Và Tên</th>
+                        <th>Email</th>
+                        <th>Số Điện Thoại</th>
+                        <th>Ngày Đăng Ký</th>
+                        <th class="text-center">Trạng Thái</th>
+                        <th class="text-end">Hành Động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if readers %}
+                        {% for reader in readers %}
+                            <tr>
+                                <td class="text-muted">{{ loop.index + (pagination.page - 1) * pagination.per_page }}</td>
+                                <td><code class="text-primary fw-semibold">{{ reader.reader_code }}</code></td>
+                                <td>
+                                    <a href="{{ url_for('readers.detail', reader_id=reader.id) }}" class="fw-semibold text-decoration-none text-dark">
+                                        {{ reader.full_name }}
+                                    </a>
+                                </td>
+                                <td>{{ reader.email }}</td>
+                                <td>{{ reader.phone or '-' }}</td>
+                                <td>{{ reader.registered_date.strftime('%d/%m/%Y') if reader.registered_date else '-' }}</td>
+                                <td class="text-center">
+                                    {% if reader.status == 'active' %}
+                                        <span class="badge bg-success-subtle text-success badge-status">Hoạt động</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary-subtle text-secondary badge-status">Ngừng hoạt động</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('readers.detail', reader_id=reader.id) }}" class="btn btn-light" title="Chi tiết & Lịch sử">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('readers.edit', reader_id=reader.id) }}" class="btn btn-light" title="Sửa">
+                                            <i class="bi bi-pencil-square text-primary"></i>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('readers.delete', reader_id=reader.id) }}" class="d-inline confirm-action" data-confirm="Bạn có chắc chắn muốn xóa/vô hiệu hóa độc giả '{{ reader.full_name }}'?">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-light text-danger" title="Xóa/Khóa thẻ">
+                                                <i class="bi bi-person-x"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-person-dash fs-1 d-block mb-2"></i> Không tìm thấy độc giả nào phù hợp.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
+            <span class="small text-muted">
+                Hiển thị trang {{ pagination.page }} / {{ pagination.pages }} (Tổng {{ pagination.total }} độc giả)
+            </span>
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+                        <a class="page-link" href="{{ url_for('readers.index', page=pagination.prev_num, q=search, status=status) }}">Trước</a>
+                    </li>
+                    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if p %}
+                            <li class="page-item {{ 'active' if p == pagination.page }}">
+                                <a class="page-link" href="{{ url_for('readers.index', page=p, q=search, status=status) }}">{{ p }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+                        <a class="page-link" href="{{ url_for('readers.index', page=pagination.next_num, q=search, status=status) }}">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
